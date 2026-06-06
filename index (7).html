@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Macro Planner">
+<meta name="theme-color" content="#993556">
+<title>Macro Planner</title>
+<link rel="manifest" href="manifest.json">
+<style>
+  :root {
+    --pink: #993556; --pink-mid: #D4537E; --pink-light: #FBEAF0;
+    --teal: #0F6E56; --teal-mid: #1D9E75; --teal-light: #E1F5EE;
+    --gold: #BA7517; --gold-light: #FAEEDA;
+    --grey: #F5F5F5; --border: #E0E0E0; --text: #1A1A1A; --text-muted: #666;
+    --radius: 12px; --shadow: 0 2px 12px rgba(0,0,0,0.08);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #F8F8F8; color: var(--text); min-height: 100vh; }
+
+  .top-bar { background: var(--pink); color: white; padding: 14px 16px 10px; position: sticky; top: 0; z-index: 100; }
+  .top-bar h1 { font-size: 18px; font-weight: 700; }
+  .top-bar .subtitle { font-size: 12px; opacity: 0.8; margin-top: 2px; }
+  .tab-bar { display: flex; background: white; border-bottom: 1px solid var(--border); position: sticky; top: 64px; z-index: 99; }
+  .tab-btn { flex: 1; padding: 12px 4px; font-size: 11px; font-weight: 600; color: var(--text-muted); border: none; background: none; cursor: pointer; border-bottom: 3px solid transparent; transition: all 0.2s; text-align: center; }
+  .tab-btn.active { color: var(--pink); border-bottom-color: var(--pink); }
+  .tab-icon { display: block; font-size: 18px; margin-bottom: 2px; }
+
+  .screen { display: none; padding: 16px; max-width: 480px; margin: 0 auto; }
+  .screen.active { display: block; }
+
+  .week-nav { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+  .week-nav button { background: var(--pink); color: white; border: none; border-radius: 8px; padding: 8px 14px; font-size: 18px; cursor: pointer; }
+  .week-label { flex: 1; text-align: center; font-weight: 600; font-size: 14px; }
+
+  .day-card { background: white; border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 12px; overflow: hidden; }
+  .day-header { padding: 12px 14px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+  .day-header.low { background: #EBF5FF; }
+  .day-header.mid { background: #F3E8FD; }
+  .day-name { font-weight: 700; font-size: 15px; }
+  .day-type-badge { font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .badge-low { background: #DBEAFE; color: #1D4ED8; }
+  .badge-mid { background: #EDE9FE; color: #6D28D9; }
+  .day-macros { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+  .day-body { border-top: 1px solid var(--border); }
+  .day-body.collapsed { display: none; }
+
+  .macro-bars { padding: 10px 14px; background: #FAFAFA; border-bottom: 1px solid var(--border); }
+  .macro-bar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .macro-bar-row:last-child { margin-bottom: 0; }
+  .macro-label { font-size: 11px; font-weight: 600; width: 14px; color: var(--text-muted); }
+  .bar-track { flex: 1; height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 4px; transition: width 0.4s ease; }
+  .bar-c { background: #3B82F6; } .bar-p { background: #10B981; } .bar-f { background: #F59E0B; } .bar-over { background: #EF4444; }
+  .macro-nums { font-size: 11px; width: 70px; text-align: right; color: var(--text-muted); }
+  .macro-nums.over { color: #EF4444; font-weight: 700; }
+  .macro-nums.good { color: #10B981; font-weight: 700; }
+
+  .person-tabs { display: flex; border-bottom: 1px solid var(--border); }
+  .person-tab { flex: 1; padding: 8px; font-size: 12px; font-weight: 600; text-align: center; cursor: pointer; border-bottom: 2px solid transparent; color: var(--text-muted); }
+  .person-tab.active-cath { color: var(--pink); border-bottom-color: var(--pink); }
+  .person-tab.active-vic { color: var(--teal); border-bottom-color: var(--teal); }
+
+  .fixed-strip { padding: 8px 14px; font-size: 11px; color: var(--text-muted); background: #FFFBF0; border-bottom: 1px solid #F0E8D0; }
+  .fixed-strip span { font-weight: 600; color: var(--gold); }
+
+  .slot-row { padding: 10px 14px; border-bottom: 1px solid #F0F0F0; }
+  .slot-row:last-child { border-bottom: none; }
+  .slot-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .slot-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
+  .slot-macros { font-size: 11px; color: var(--text-muted); }
+  .meal-select-btn { width: 100%; padding: 10px 12px; background: var(--grey); border: 1.5px solid var(--border); border-radius: 8px; font-size: 14px; color: var(--text); text-align: left; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: all 0.2s; }
+  .meal-select-btn.selected { background: var(--pink-light); border-color: var(--pink-mid); }
+  .meal-select-btn .chevron { color: var(--text-muted); font-size: 12px; flex-shrink: 0; margin-left: 8px; }
+  .meal-name-text { flex: 1; font-size: 13px; line-height: 1.3; }
+
+  .adj-row { display: flex; gap: 8px; padding: 8px 14px; background: #FFFBF0; border-top: 1px solid #F0E8D0; }
+  .adj-row label { font-size: 11px; color: var(--gold); font-weight: 600; align-self: center; min-width: 60px; }
+  .adj-input { flex: 1; padding: 6px 8px; border: 1px solid #E8D8B0; border-radius: 6px; font-size: 13px; text-align: center; background: white; }
+  .adj-input:focus { outline: none; border-color: var(--gold); }
+
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; display: none; align-items: flex-end; }
+  .modal-overlay.open { display: flex; }
+  .modal-sheet { background: white; border-radius: 20px 20px 0 0; width: 100%; max-height: 85vh; display: flex; flex-direction: column; }
+  .modal-header { padding: 16px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+  .modal-title { font-weight: 700; font-size: 16px; }
+  .modal-close { background: var(--grey); border: none; border-radius: 50%; width: 32px; height: 32px; font-size: 18px; cursor: pointer; }
+  .modal-search { padding: 10px 16px; border-bottom: 1px solid var(--border); }
+  .modal-search input { width: 100%; padding: 10px 14px; border: 1.5px solid var(--border); border-radius: 8px; font-size: 14px; }
+  .modal-search input:focus { outline: none; border-color: var(--pink); }
+  .modal-list { overflow-y: auto; flex: 1; }
+  .meal-option { padding: 12px 16px; border-bottom: 1px solid #F5F5F5; cursor: pointer; transition: background 0.15s; }
+  .meal-option:active { background: var(--pink-light); }
+  .meal-option.selected-meal { background: var(--pink-light); }
+  .meal-option-name { font-size: 14px; font-weight: 500; margin-bottom: 3px; }
+  .meal-option-macros { font-size: 12px; color: var(--text-muted); }
+  .tried-badge { display: inline-block; font-size: 10px; padding: 1px 6px; border-radius: 10px; margin-left: 6px; background: #D1FAE5; color: #065F46; }
+  .no-meal-opt { padding: 14px 16px; border-bottom: 1px solid #F5F5F5; cursor: pointer; color: var(--text-muted); font-size: 14px; }
+  .no-meal-opt:active { background: var(--grey); }
+
+  .loading { text-align: center; padding: 40px; color: var(--text-muted); }
+  .spinner { width: 36px; height: 36px; border: 3px solid var(--border); border-top-color: var(--pink); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 12px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .targets-card { background: white; border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 16px; overflow: hidden; }
+  .targets-card-header { padding: 12px 14px; font-weight: 700; font-size: 14px; color: white; }
+  .targets-table { padding: 12px 14px; }
+  .targets-row { display: flex; padding: 8px 0; border-bottom: 1px solid #F5F5F5; font-size: 13px; align-items: center; }
+  .targets-row:last-child { border-bottom: none; }
+  .targets-row .lbl { flex: 1; color: var(--text-muted); font-size: 12px; }
+  .targets-row .vals { display: flex; gap: 12px; }
+  .val-item { text-align: center; min-width: 48px; }
+  .val-item .num { font-weight: 700; font-size: 15px; }
+  .val-item .unit { font-size: 10px; color: var(--text-muted); }
+  .col-headers { display: flex; padding: 0 0 6px; }
+  .col-headers .lbl { flex: 1; }
+  .col-headers span { min-width: 48px; text-align: center; font-size: 11px; font-weight: 700; color: var(--text-muted); }
+
+  .meal-card { background: white; border-radius: 10px; padding: 12px; margin-bottom: 8px; box-shadow: var(--shadow); }
+  .meal-card-name { font-weight: 600; font-size: 14px; margin-bottom: 4px; }
+  .meal-card-macros { font-size: 12px; color: var(--text-muted); margin-bottom: 3px; }
+  .meal-card-ingr { font-size: 12px; color: var(--text-muted); margin-bottom: 3px; }
+  .meal-card-notes { font-size: 12px; font-style: italic; color: #888; }
+  .section-header { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; padding: 12px 0 6px; }
+  .badge { display: inline-block; font-size: 10px; padding: 1px 6px; border-radius: 10px; margin-left: 4px; }
+  .badge-tried { background: #D1FAE5; color: #065F46; }
+  .badge-liked { background: #FEF9C3; color: #713F12; }
+</style>
+</head>
+<body>
+<div class="top-bar">
+  <h1>🥗 Macro Planner</h1>
+  <div class="subtitle">Catherine & Vic</div>
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('planner',this)"><span class="tab-icon">📅</span>Planner</button>
+  <button class="tab-btn" onclick="showTab('targets',this)"><span class="tab-icon">🎯</span>Targets</button>
+  <button class="tab-btn" onclick="showTab('meals',this)"><span class="tab-icon">🍽️</span>Meals</button>
+</div>
+
+<!-- PLANNER -->
+<div id="screen-planner" class="screen active">
+  <div class="week-nav">
+    <button onclick="changeWeek(-1)">‹</button>
+    <div class="week-label" id="week-label">Loading...</div>
+    <button onclick="changeWeek(1)">›</button>
+  </div>
+  <div id="days-container"><div class="loading"><div class="spinner"></div>Loading your plan...</div></div>
+</div>
+
+<!-- TARGETS -->
+<div id="screen-targets" class="screen">
+  <div class="targets-card">
+    <div class="targets-card-header" style="background:var(--pink);">Catherine's Daily Targets</div>
+    <div class="targets-table">
+      <div class="col-headers"><div class="lbl"></div><span>Carbs</span><span>Protein</span><span>Fat</span></div>
+      <div class="targets-row">
+        <div class="lbl">🔵 Low Days (Mon–Thu)</div>
+        <div class="vals">
+          <div class="val-item"><div class="num">100</div><div class="unit">g</div></div>
+          <div class="val-item"><div class="num">120</div><div class="unit">g</div></div>
+          <div class="val-item"><div class="num">80</div><div class="unit">g</div></div>
+        </div>
+      </div>
+      <div class="targets-row">
+        <div class="lbl">🟣 Mid Days (Fri–Sun)</div>
+        <div class="vals">
+          <div class="val-item"><div class="num">160</div><div class="unit">g</div></div>
+          <div class="val-item"><div class="num">120</div><div class="unit">g</div></div>
+          <div class="val-item"><div class="num">53</div><div class="unit">g</div></div>
+        </div>
+      </div>
+      <div class="targets-row" style="background:#FFFBF0;border-radius:8px;padding:8px;margin-top:6px;">
+        <div class="lbl">☕ Fixed daily (OJ + collagen + 3 teas)</div>
+        <div class="vals">
+          <div class="val-item"><div class="num" style="font-size:13px;">20</div><div class="unit">C</div></div>
+          <div class="val-item"><div class="num" style="font-size:13px;">19</div><div class="unit">P</div></div>
+          <div class="val-item"><div class="num" style="font-size:13px;">3</div><div class="unit">F</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="targets-card">
+    <div class="targets-card-header" style="background:var(--teal);">Vic's Daily Targets</div>
+    <div class="targets-table">
+      <div class="col-headers"><div class="lbl"></div><span>Carbs</span><span>Protein</span><span>Fat</span></div>
+      <div class="targets-row">
+        <div class="lbl">Mid target</div>
+        <div class="vals">
+          <div class="val-item"><div class="num">195</div><div class="unit">g</div></div>
+          <div class="val-item"><div class="num">147</div><div class="unit">g</div></div>
+          <div class="val-item"><div class="num">65</div><div class="unit">g</div></div>
+        </div>
+      </div>
+      <div class="targets-row">
+        <div class="lbl">Low target</div>
+        <div class="vals">
+          <div class="val-item"><div class="num">120</div><div class="unit">g</div></div>
+          <div class="val-item"><div class="num">147</div><div class="unit">g</div></div>
+          <div class="val-item"><div class="num">98</div><div class="unit">g</div></div>
+        </div>
+      </div>
+      <div class="targets-row" style="background:#FFFBF0;border-radius:8px;padding:8px;margin-top:6px;">
+        <div class="lbl">☕ Fixed daily (4 teas + protein yoghurt)</div>
+        <div class="vals">
+          <div class="val-item"><div class="num" style="font-size:13px;">40</div><div class="unit">C</div></div>
+          <div class="val-item"><div class="num" style="font-size:13px;">39</div><div class="unit">P</div></div>
+          <div class="val-item"><div class="num" style="font-size:13px;">13</div><div class="unit">F</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="targets-card">
+    <div class="targets-card-header" style="background:var(--gold);">Exercise Schedule</div>
+    <div class="targets-table">
+      <div class="targets-row"><div class="lbl">Monday – Thursday</div><div class="vals"><span style="font-size:12px;padding:3px 8px;background:#DBEAFE;color:#1D4ED8;border-radius:10px;font-weight:700;">LOW</span></div></div>
+      <div class="targets-row"><div class="lbl">Friday – Sunday</div><div class="vals"><span style="font-size:12px;padding:3px 8px;background:#EDE9FE;color:#6D28D9;border-radius:10px;font-weight:700;">MID</span></div></div>
+      <div class="targets-row"><div class="lbl">Vic — every day</div><div class="vals"><span style="font-size:12px;color:var(--text-muted);">Same target</span></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- MEALS BROWSER -->
+<div id="screen-meals" class="screen">
+  <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+    <select id="meals-person" onchange="renderMealsBrowser()" style="flex:1;padding:8px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;">
+      <option value="catherine">Catherine</option>
+      <option value="vic">Vic</option>
+    </select>
+    <select id="meals-slot" onchange="renderMealsBrowser()" style="flex:1;padding:8px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;">
+      <option value="">All slots</option>
+      <option value="breakfast">Breakfast</option>
+      <option value="lunch">Lunch</option>
+      <option value="dinner">Dinner</option>
+      <option value="snack">Snack</option>
+    </select>
+    <select id="meals-daytype" onchange="renderMealsBrowser()" style="flex:1;padding:8px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;">
+      <option value="">All days</option>
+      <option value="low">Low days</option>
+      <option value="mid">Mid days</option>
+      <option value="any">Any day</option>
+    </select>
+  </div>
+  <div id="meals-list"><div class="loading"><div class="spinner"></div>Loading meals...</div></div>
+</div>
+
+<!-- MEAL PICKER MODAL -->
+<div class="modal-overlay" id="meal-modal" onclick="closeModalIfOverlay(event)">
+  <div class="modal-sheet">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-title">Choose a meal</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-search"><input type="search" id="modal-search" placeholder="Search meals..." oninput="filterModalMeals()"></div>
+    <div class="modal-list" id="modal-list"></div>
+  </div>
+</div>
+
+<script>
+const SB_URL = 'https://hebuaabantmnfdxxkaif.supabase.co';
+const SB_KEY = 'sb_publishable_xzVfo0l-eLpkP4TuUy17KQ_kLLUUScF';
+
+const DAYS = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
+const DAY_LABELS = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+const DAY_TYPES = ['low','low','low','low','mid','mid','mid'];
+const SLOTS = ['breakfast','lunch','dinner','snack'];
+const SLOT_LABELS = ['Breakfast','Lunch','Dinner','Snack'];
+
+const CATH_T = {
+  low:  { c:100, p:120, f:80,  fc:{c:20,p:19,f:3} },
+  mid:  { c:160, p:120, f:53,  fc:{c:40,p:20,f:3} }
+};
+const VIC_T = { any: { c:195, p:147, f:65, fc:{c:40,p:39,f:13} } };
+
+let allMeals = [], selections = {}, currentWeekId = null;
+let currentWeekStart = getMonday(new Date());
+let modalCtx = null, modalOptions = [];
+
+async function sb(method, path, body) {
+  const r = await fetch(`${SB_URL}/rest/v1/${path}`, {
+    method,
+    headers: { 'apikey':SB_KEY, 'Authorization':`Bearer ${SB_KEY}`, 'Content-Type':'application/json',
+      'Prefer': method==='POST'?'return=representation':'return=minimal' },
+    body: body ? JSON.stringify(body) : undefined
+  });
+  const t = await r.text();
+  return t ? JSON.parse(t) : null;
+}
+
+function getMonday(d) {
+  const date = new Date(d); const day = date.getDay();
+  date.setDate(date.getDate() - day + (day===0?-6:1)); date.setHours(0,0,0,0); return date;
+}
+function fmtDate(d) { return d.toISOString().split('T')[0]; }
+function weekLabel(mon) {
+  const sun = new Date(mon); sun.setDate(sun.getDate()+6);
+  const o = {day:'numeric',month:'short'};
+  return `${mon.toLocaleDateString('en-GB',o)} – ${sun.toLocaleDateString('en-GB',o)}`;
+}
+function changeWeek(d) { currentWeekStart = new Date(currentWeekStart); currentWeekStart.setDate(currentWeekStart.getDate()+d*7); loadPlanner(); }
+
+async function init() {
+  await loadMeals();
+  await loadPlanner();
+  renderMealsBrowser();
+}
+
+async function loadMeals() {
+  try {
+    allMeals = await sb('GET','planner_meals?active=eq.true&order=person,slot,day_type,name') || [];
+    if (allMeals.length===0) {
+      document.getElementById('days-container').innerHTML=`<div style="background:white;border-radius:12px;padding:24px;text-align:center;box-shadow:var(--shadow);"><div style="font-size:40px;margin-bottom:12px;">🌱</div><div style="font-weight:700;font-size:16px;margin-bottom:8px;">Run seed.sql first</div><div style="font-size:13px;color:var(--text-muted);line-height:1.6;">Copy the seed.sql file contents into your Supabase SQL editor and run it to load all your meals, then refresh this page.</div></div>`;
+    }
+  } catch(e) { console.error(e); }
+}
+
+async function loadPlanner() {
+  document.getElementById('week-label').textContent = weekLabel(currentWeekStart);
+  const ws = fmtDate(currentWeekStart);
+  try {
+    let weeks = await sb('GET',`planner_weeks?week_start=eq.${ws}`) || [];
+    if (!weeks.length) { const c = await sb('POST','planner_weeks',{week_start:ws}); currentWeekId=c[0].id; }
+    else currentWeekId = weeks[0].id;
+    const sels = await sb('GET',`planner_selections?week_id=eq.${currentWeekId}`) || [];
+    selections = {};
+    sels.forEach(s => { selections[`${s.person}_${s.day_of_week}_${s.slot}`]=s; });
+    renderPlanner();
+  } catch(e) { console.error(e); document.getElementById('days-container').innerHTML=`<div class="loading">Connection error. Check your internet.</div>`; }
+}
+
+function renderPlanner() {
+  const c = document.getElementById('days-container'); c.innerHTML='';
+  DAYS.forEach((day,di) => {
+    const dt = DAY_TYPES[di];
+    const card = document.createElement('div'); card.className='day-card'; card.id=`dc-${day}`;
+    const ct = computeTotals('catherine',day,dt), vt = computeTotals('vic',day,'mid');
+    card.innerHTML=`
+      <div class="day-header ${dt}" onclick="toggleDay('${day}')">
+        <div><div class="day-name">${DAY_LABELS[di]}</div><div class="day-macros" id="dm-${day}">${fmtT(ct)} · ${fmtT(vt)}</div></div>
+        <span class="day-type-badge badge-${dt}">${dt}</span>
+      </div>
+      <div class="day-body collapsed" id="db-${day}">
+        <div class="person-tabs">
+          <div class="person-tab active-cath" id="pt-cath-${day}" onclick="swPerson('${day}','catherine')">Catherine</div>
+          <div class="person-tab" id="pt-vic-${day}" onclick="swPerson('${day}','vic')">Vic</div>
+        </div>
+        <div id="pp-cath-${day}">
+          <div class="fixed-strip">Fixed: <span>C${CATH_T[dt].fc.c} P${CATH_T[dt].fc.p} F${CATH_T[dt].fc.f}</span></div>
+          ${SLOTS.map((sl,si)=>renderSlot('catherine',day,di,sl,si,dt)).join('')}
+          ${renderAdj('catherine',day)}
+          ${renderBars('catherine',day,dt)}
+        </div>
+        <div id="pp-vic-${day}" style="display:none">
+          <div class="fixed-strip">Fixed: <span>C${VIC_T.any.fc.c} P${VIC_T.any.fc.p} F${VIC_T.any.fc.f}</span></div>
+          ${SLOTS.map((sl,si)=>renderSlot('vic',day,di,sl,si,'mid')).join('')}
+          ${renderAdj('vic',day)}
+          ${renderBars('vic',day,'mid')}
+        </div>
+      </div>`;
+    c.appendChild(card);
+  });
+}
+
+function renderSlot(person,day,di,slot,si,dt) {
+  const key=`${person}_${day}_${slot}`, sel=selections[key];
+  const nm=sel?.meal_name, mac=sel?`C${sel.carbs||0} P${sel.protein||0} F${sel.fat||0}`:'';
+  const col=person==='catherine'?'var(--pink)':'var(--teal)';
+  return `<div class="slot-row"><div class="slot-header"><div class="slot-label" style="color:${col}">${SLOT_LABELS[si]}</div><div class="slot-macros">${mac}</div></div>
+    <button class="meal-select-btn ${nm?'selected':''}" onclick="openPicker(${di},'${person}',${si})">
+      <span class="meal-name-text">${nm||'Tap to choose...'}</span><span class="chevron">›</span>
+    </button></div>`;
+}
+
+function renderAdj(person,day) {
+  const adj=selections[`${person}_${day}_adj`]||{};
+  return `<div class="adj-row"><label>Adjust</label>
+    <input class="adj-input" type="number" placeholder="C" value="${adj.adj_c||''}" onchange="saveAdj('${person}','${day}','c',this.value)">
+    <input class="adj-input" type="number" placeholder="P" value="${adj.adj_p||''}" onchange="saveAdj('${person}','${day}','p',this.value)">
+    <input class="adj-input" type="number" placeholder="F" value="${adj.adj_f||''}" onchange="saveAdj('${person}','${day}','f',this.value)">
+  </div>`;
+}
+
+function renderBars(person,day,dt) {
+  const t=computeTotals(person,day,dt);
+  const tgt=person==='catherine'?CATH_T[dt]:VIC_T.any;
+  const tc=tgt.c,tp=tgt.p,tf=tgt.f;
+  function pct(v,mx){return Math.min(100,Math.round(v/mx*100));}
+  function cls(v,mx){return v>mx*1.1?'over':v>=mx*0.9?'good':'';}
+  function bcls(v,mx){return v>mx?'bar-over':'bar-c';}
+  return `<div class="macro-bars" id="bars-${person}-${day}">
+    <div class="macro-bar-row"><div class="macro-label">C</div><div class="bar-track"><div class="bar-fill ${bcls(t.c,tc)}" style="width:${pct(t.c,tc)}%"></div></div><div class="macro-nums ${cls(t.c,tc)}">${t.c}/${tc}g</div></div>
+    <div class="macro-bar-row"><div class="macro-label">P</div><div class="bar-track"><div class="bar-fill ${t.p>tp?'bar-over':'bar-p'}" style="width:${pct(t.p,tp)}%"></div></div><div class="macro-nums ${cls(t.p,tp)}">${t.p}/${tp}g</div></div>
+    <div class="macro-bar-row"><div class="macro-label">F</div><div class="bar-track"><div class="bar-fill ${t.f>tf?'bar-over':'bar-f'}" style="width:${pct(t.f,tf)}%"></div></div><div class="macro-nums ${cls(t.f,tf)}">${t.f}/${tf}g</div></div>
+  </div>`;
+}
+
+function computeTotals(person,day,dt) {
+  const tgt=person==='catherine'?CATH_T[dt]:VIC_T.any;
+  let c=tgt.fc.c,p=tgt.fc.p,f=tgt.fc.f;
+  SLOTS.forEach(sl=>{const s=selections[`${person}_${day}_${sl}`]; if(s){c+=s.carbs||0;p+=s.protein||0;f+=s.fat||0;}});
+  const adj=selections[`${person}_${day}_adj`];
+  if(adj){c+=adj.adj_c||0;p+=adj.adj_p||0;f+=adj.adj_f||0;}
+  return {c:Math.round(c*10)/10,p:Math.round(p*10)/10,f:Math.round(f*10)/10};
+}
+
+function fmtT(t){return `${t.c}C/${t.p}P/${t.f}F`;}
+function toggleDay(day){document.getElementById(`db-${day}`).classList.toggle('collapsed');}
+function swPerson(day,person){
+  document.getElementById(`pp-cath-${day}`).style.display=person==='catherine'?'':'none';
+  document.getElementById(`pp-vic-${day}`).style.display=person==='vic'?'':'none';
+  document.getElementById(`pt-cath-${day}`).className=`person-tab ${person==='catherine'?'active-cath':''}`;
+  document.getElementById(`pt-vic-${day}`).className=`person-tab ${person==='vic'?'active-vic':''}`;
+}
+
+function openPicker(di,person,si) {
+  modalCtx={di,person,si};
+  const slot=SLOTS[si],dt=DAY_TYPES[di];
+  document.getElementById('modal-title').textContent=`${person==='catherine'?'Catherine':'Vic'} — ${SLOT_LABELS[si]}`;
+  document.getElementById('modal-search').value='';
+  modalOptions=allMeals.filter(m=>m.person===person&&m.slot===slot&&(m.day_type==='any'||m.day_type===dt));
+  const curKey=`${person}_${DAYS[di]}_${slot}`;
+  renderModalList(modalOptions,selections[curKey]?.meal_id);
+  document.getElementById('meal-modal').classList.add('open');
+  setTimeout(()=>document.getElementById('modal-search').focus(),300);
+}
+
+function renderModalList(opts,selId) {
+  const list=document.getElementById('modal-list');
+  let h=`<div class="no-meal-opt" onclick="selectMeal(null)">— Clear selection —</div>`;
+  opts.forEach(m=>{
+    const mac=m.carbs!==null?`C${m.carbs} P${m.protein} F${m.fat} · ${m.calories}kcal`:'Macros not set';
+    h+=`<div class="meal-option ${m.id===selId?'selected-meal':''}" onclick="selectMeal('${m.id}')">
+      <div class="meal-option-name">${m.name}${m.tried?'<span class="tried-badge">✓ tried</span>':''}</div>
+      <div class="meal-option-macros">${mac}</div>
+      ${m.notes?`<div class="meal-option-macros" style="margin-top:2px;font-style:italic;">${m.notes.slice(0,90)}${m.notes.length>90?'…':''}</div>`:''}
+    </div>`;
+  });
+  list.innerHTML=h;
+}
+
+function filterModalMeals(){
+  const q=document.getElementById('modal-search').value.toLowerCase();
+  renderModalList(modalOptions.filter(m=>m.name.toLowerCase().includes(q)),null);
+}
+
+async function selectMeal(mealId) {
+  closeModal();
+  const {di,person,si}=modalCtx, day=DAYS[di], slot=SLOTS[si], key=`${person}_${day}_${slot}`;
+  let md={meal_id:null,meal_name:null,carbs:0,protein:0,fat:0,calories:0};
+  if(mealId){const m=allMeals.find(x=>x.id===mealId); if(m)md={meal_id:m.id,meal_name:m.name,carbs:m.carbs||0,protein:m.protein||0,fat:m.fat||0,calories:m.calories||0};}
+  selections[key]={...md,person,day_of_week:day,slot};
+  try {
+    const ex=await sb('GET',`planner_selections?week_id=eq.${currentWeekId}&person=eq.${person}&day_of_week=eq.${day}&slot=eq.${slot}`)||[];
+    const pl={week_id:currentWeekId,person,day_of_week:day,slot,...md};
+    if(ex.length) await sb('PATCH',`planner_selections?id=eq.${ex[0].id}`,pl);
+    else await sb('POST','planner_selections',pl);
+  } catch(e){console.error(e);}
+  reRenderDay(di);
+}
+
+async function saveAdj(person,day,macro,val) {
+  const key=`${person}_${day}_adj`;
+  if(!selections[key])selections[key]={adj_c:0,adj_p:0,adj_f:0};
+  selections[key][`adj_${macro}`]=parseFloat(val)||0;
+  const di=DAYS.indexOf(day);
+  try {
+    const adj=selections[key];
+    const ex=await sb('GET',`planner_selections?week_id=eq.${currentWeekId}&person=eq.${person}&day_of_week=eq.${day}&slot=eq.adj`)||[];
+    const pl={week_id:currentWeekId,person,day_of_week:day,slot:'adj',adj_c:adj.adj_c||0,adj_p:adj.adj_p||0,adj_f:adj.adj_f||0};
+    if(ex.length) await sb('PATCH',`planner_selections?id=eq.${ex[0].id}`,pl);
+    else await sb('POST','planner_selections',pl);
+  } catch(e){console.error(e);}
+  reRenderDay(di);
+}
+
+function reRenderDay(di) {
+  const day=DAYS[di],dt=DAY_TYPES[di];
+  ['catherine','vic'].forEach(person=>{
+    const pDiv=document.getElementById(`pp-${person}-${day}`); if(!pDiv)return;
+    const pDt=person==='catherine'?dt:'mid';
+    SLOTS.forEach((slot,si)=>{
+      const key=`${person}_${day}_${slot}`,sel=selections[key];
+      const btn=pDiv.querySelector(`button[onclick="openPicker(${di},'${person}',${si})"]`);
+      if(btn){
+        btn.className=`meal-select-btn ${sel?.meal_name?'selected':''}`;
+        btn.querySelector('.meal-name-text').textContent=sel?.meal_name||'Tap to choose...';
+        btn.closest('.slot-row').querySelector('.slot-macros').textContent=sel?`C${sel.carbs||0} P${sel.protein||0} F${sel.fat||0}`:'';
+      }
+    });
+    const oldBars=document.getElementById(`bars-${person}-${day}`);
+    if(oldBars){const tmp=document.createElement('div');tmp.innerHTML=renderBars(person,day,pDt);oldBars.replaceWith(tmp.firstElementChild);}
+  });
+  const hdr=document.querySelector(`#dc-${day} #dm-${day}`);
+  if(hdr){const ct=computeTotals('catherine',day,dt),vt=computeTotals('vic',day,'mid');hdr.textContent=`${fmtT(ct)} · ${fmtT(vt)}`;}
+}
+
+function closeModal(){document.getElementById('meal-modal').classList.remove('open');}
+function closeModalIfOverlay(e){if(e.target.id==='meal-modal')closeModal();}
+
+function renderMealsBrowser() {
+  const person=document.getElementById('meals-person').value;
+  const slot=document.getElementById('meals-slot').value;
+  const dt=document.getElementById('meals-daytype').value;
+  let filtered=allMeals.filter(m=>m.person===person&&(!slot||m.slot===slot)&&(!dt||m.day_type===dt));
+  const c=document.getElementById('meals-list');
+  if(!filtered.length){c.innerHTML=`<div class="loading">No meals found.</div>`;return;}
+  const col=person==='catherine'?'var(--pink)':'var(--teal)';
+  let h='',lastSlot='';
+  filtered.forEach(m=>{
+    if(m.slot!==lastSlot){h+=`<div class="section-header" style="color:${col}">${m.slot.toUpperCase()}${m.day_type!=='any'?` — ${m.day_type.toUpperCase()} DAYS`:''}</div>`;lastSlot=m.slot;}
+    const mac=m.carbs!==null?`C${m.carbs}  P${m.protein}  F${m.fat}  ${m.calories}kcal`:'Macros TBC';
+    h+=`<div class="meal-card"><div class="meal-card-name">${m.name}${m.tried?'<span class="badge badge-tried">✓ tried</span>':''}${m.liked?'<span class="badge badge-liked">👍</span>':''}</div>
+      <div class="meal-card-macros">${mac}</div>
+      ${m.ingredients?`<div class="meal-card-ingr">${m.ingredients}</div>`:''}
+      ${m.notes?`<div class="meal-card-notes">${m.notes}</div>`:''}
+    </div>`;
+  });
+  c.innerHTML=h;
+}
+
+function showTab(tab,btn) {
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById(`screen-${tab}`).classList.add('active');
+  btn.classList.add('active');
+}
+
+init();
+</script>
+</body>
+</html>
